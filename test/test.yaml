@@ -1,4 +1,4 @@
-input-files: ["test/input.md"]
+input-files: ["test/input.tex"]
 standalone: true
 filters:
-  - {type: lua, path: greetings.lua}
+  - {type: lua, path: table-code-chunk.lua}

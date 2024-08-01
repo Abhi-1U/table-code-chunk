@@ -12,7 +12,7 @@ SED := sed $(shell sed v </dev/null >/dev/null 2>&1 && echo " --posix") -E
 
 # Pandoc formats for test outputs
 ifeq "$(FORMAT)" ""
-FORMAT = native
+FORMAT = markdown
 endif
 
 # Directory containing the Quarto extension
@@ -51,7 +51,7 @@ help:
 # (i.e., the filter file).
 # let `test` be a PHONY target so that it is run each time it's called.
 .PHONY: test
-test: $(FILTER_FILE) test/input.md test/test.yaml
+test: $(FILTER_FILE) test/input.tex test/test.yaml
 	@for ext in $(FORMAT) ; do \
 		$(PANDOC) --defaults test/test.yaml --to $$ext | \
 		$(DIFF) test/expected.$$ext - ; \
@@ -62,7 +62,7 @@ test: $(FILTER_FILE) test/input.md test/test.yaml
 # would cause it to be regenerated on each run, making the test
 # pointless.
 .PHONY: generate
-generate: $(FILTER_FILE) test/input.md test/test.yaml
+generate: $(FILTER_FILE) test/input.tex test/test.yaml
 	@for ext in $(FORMAT) ; do \
 		$(PANDOC) --defaults test/test.yaml --to $$ext \
 		--output test/expected.$$ext ; \
@@ -76,13 +76,13 @@ generate: $(FILTER_FILE) test/input.md test/test.yaml
 .PHONY: website
 website: _site/index.html _site/$(FILTER_FILE)
 
-_site/index.html: README.md test/input.md $(FILTER_FILE) .tools/docs.lua \
+_site/index.html: README.md test/input.tex $(FILTER_FILE) .tools/docs.lua \
 		_site/output.md _site/style.css
 	@mkdir -p _site
 	$(PANDOC) \
 	    --standalone \
 	    --lua-filter=.tools/docs.lua \
-	    --metadata=sample-file:test/input.md \
+	    --metadata=sample-file:test/input.tex \
 	    --metadata=result-file:_site/output.md \
 	    --metadata=code-file:$(FILTER_FILE) \
 	    --css=style.css \
@@ -95,7 +95,7 @@ _site/style.css:
 	    --output $@ \
 	    'https://cdn.jsdelivr.net/gh/kognise/water.css@latest/dist/light.css'
 
-_site/output.md: $(FILTER_FILE) test/input.md test/test.yaml
+_site/output.md: $(FILTER_FILE) test/input.tex test/test.yaml
 	@mkdir -p _site
 	$(PANDOC) \
 	    --defaults=test/test.yaml \
