@@ -1,6 +1,6 @@
 --- table-code-chunk.lua – converts tables into kable code chunk
 ---
---- Copyright: © 2021–2022 Contributors
+--- Copyright: © 2024 Abhishek Ulayil
 --- License: MIT – see LICENSE for details
 
 -- Makes sure users know if their pandoc version is too old for this
@@ -18,7 +18,40 @@ function write_to_file(filename,open_mode,content)
   end
 end
 
-
+element_switch = {
+  Plain = function(el) return parse_content(el.content[1]) end,
+  CodeBlock = function(el) return  el.text:gsub("[\n\r]", " ")   end,
+  Para = function(el) return el.content end,
+  Str = function(el) return string.gsub(el.text,"*","\\*") end,
+  Strong = function(el) return [[**]].. parse_content(el.content[1]) .. [[**]] end,
+  Emph = function(el) return [[*]] .. parse_content(el.content[1]) .. [[*]] end,
+  Strikeout = function(el) return [[~~]] .. parse_content(el.content[1]) .. [[~~]] end,
+  Subscript = function(el) return [[~]] .. parse_content(el.content[1]) .. [[~]] end,
+  Superscript = function(el) return [[^]] .. parse_content(el.content[1]) .. [[^]] end,
+  Code = function(el) return "`" .. el.text .. "`" end,
+  Link = function(el) 
+    return [[<a href="]] .. el.target .. [[">]] .. parse_content(el.content[1]) .. [[</a>]] 
+  end,
+  Image = function(el)
+    return [[<img src="]] .. el.src .. [[" alt="graphic with alt text"/>]]
+  end,
+  Math = function(el)
+    if (el.mathtype) == "InlineMath" then
+      return "$" .. el.text .. "$"
+    end
+    if (el.mathtype) == "DisplayMath" then
+      return "$$" .. el.text .. "$$"
+    end
+  end
+}
+function parse_content(data)
+  local fun = element_switch[data.tag]
+  if (fun) then
+    return fun(data)
+  else
+    return pandoc.utils.stringify(data)
+  end
+end
 function Table(el)
   -- Header Data
   local data_file_name = [[table_data_]] .. table_count .. [[.csv]] 
@@ -29,10 +62,18 @@ function Table(el)
       local cell_data = row_data.cells
       local row_text = ""
       for j = 1,#cell_data,1 do
-        if j ~= #cell_data then
-          row_text = row_text .. pandoc.utils.stringify(cell_data[j].contents) .. " ,"
-        else
-          row_text = row_text .. pandoc.utils.stringify(cell_data[j].contents)
+        if cell_data[j] ~= nil then
+          local cell_contents = ""
+          if cell_data[j].contents[1] == nil  then
+            cell_contents = " "
+          else
+            cell_contents = parse_content(cell_data[j].contents[1]) 
+          end
+          if j ~= #cell_data then
+            row_text = row_text .. cell_contents .. " ,"
+          else
+            row_text = row_text .. cell_contents
+          end
         end
       end
       if i == 1 then
@@ -50,10 +91,16 @@ function Table(el)
     local row_text = ""
     for j = 1,#cell_data,1 do
       if cell_data[j] ~= nil then
-        if j ~= #cell_data then
-          row_text = row_text .. pandoc.utils.stringify(cell_data[j].contents) .. " ,"
+        local cell_contents = ""
+        if cell_data[j].contents[1] == nil  then
+          cell_contents = " "
         else
-          row_text = row_text .. pandoc.utils.stringify(cell_data[j].contents)
+          cell_contents = parse_content(cell_data[j].contents[1]) 
+        end
+        if j ~= #cell_data then
+          row_text = row_text .. cell_contents .. " ,"
+        else
+          row_text = row_text .. cell_contents
         end
       end
     end
